@@ -4,7 +4,9 @@ import win32con
 import win32api
 import pydirectinput
 import time
-
+from PIL import ImageGrab
+import pyautogui
+import pygetwindow as gw
 pydirectinput.PAUSE = 0
 pydirectinput.FAILSAFE = False
 
@@ -71,7 +73,7 @@ class GameWindow:
         """Get window position and size."""
         if not self.hwnd:
             self.find_window()
-        return win32gui.GetWindowRect(self.hwnd)
+        return win32gui.GetClientRect(self.hwnd)
 
     def get_size(self):
         """Get window width and height."""
@@ -125,168 +127,7 @@ class GameWindow:
         self.click(675, 390)  # Click Play for Course
     
     def click_throw(self):
-        self.click(425,435)
+        self.click(640, 650)
         time.sleep(1)
 
-    def click_throw_debug(self, debug=True):
-        """Click the throw button, with fresh coordinate recalculation each time.
-        
-        Parameters:
-        - debug: if True, prints the screen coordinates to help diagnose drift.
-        """
-        # Ensure window is focused first (some games change layout when focused)
-        if not self.hwnd:
-            self.find_window()
-        self.focus()
-
-        # Recompute window/client info after focus
-        try:
-            hwnd = self.hwnd
-            win_rect = win32gui.GetWindowRect(hwnd)
-            client_rect = win32gui.GetClientRect(hwnd)
-            client_left, client_top = win32gui.ClientToScreen(hwnd, (0, 0))
-            throw_wx, throw_wy = 425, 435
-            sx, sy = client_left + throw_wx, client_top + throw_wy
-            cursor = win32api.GetCursorPos()
-
-            if debug:
-                print("--- click_throw_debug ---")
-                print(f"hwnd={hwnd}")
-                print(f"GetWindowRect: {win_rect}")
-                print(f"GetClientRect: {client_rect}")
-                print(f"ClientToScreen origin: ({client_left}, {client_top})")
-                print(f"throw window-relative: ({throw_wx}, {throw_wy}) -> screen: ({sx}, {sy})")
-                print(f"current cursor: {cursor}")
-
-            pydirectinput.click(x=sx, y=sy)
-            time.sleep(1)
-        except Exception as e:
-            print(f"click_throw_debug error: {e}")
-            raise
-
-    def click_throw_rel(self, relx: float, rely: float, debug=True):
-        """Click at a position given as fractions of the client area.
-
-        - `relx`, `rely` are in 0..1 (fraction of client width/height).
-        This makes clicks robust to client resolution changes.
-        """
-        if not self.hwnd:
-            self.find_window()
-        self.focus()
-
-        hwnd = self.hwnd
-        # client rect gives width/height
-        cl_left, cl_top = win32gui.ClientToScreen(hwnd, (0, 0))
-        client_rect = win32gui.GetClientRect(hwnd)
-        client_w = client_rect[2]
-        client_h = client_rect[3]
-
-        # clamp
-        rx = max(0.0, min(1.0, float(relx)))
-        ry = max(0.0, min(1.0, float(rely)))
-
-        wx = int(rx * client_w)
-        wy = int(ry * client_h)
-        sx = cl_left + wx
-        sy = cl_top + wy
-
-        if debug:
-            print(f"click_throw_rel: client_size=({client_w},{client_h}), rel=({rx},{ry}), window-relative=({wx},{wy}), screen=({sx},{sy})")
-
-        pydirectinput.click(x=sx, y=sy)
-        time.sleep(1)
-
-    def take_screenshot(self, top_left, bottom_right, save_path=None, relative=True, rel_norm=False, clip_to_client=True):
-        """Take a screenshot of a region inside the game window.
-
-        Parameters:
-        - top_left: (x, y) tuple of top-left corner. If `relative` it's window-client relative.
-                    When `rel_norm=True` the values must be normalized floats in 0..1.
-        - bottom_right: (x, y) tuple of bottom-right corner. Same semantics as `top_left`.
-        - save_path: optional path to save the captured image (PNG/JPEG).
-        - relative: whether provided coordinates are relative to the game window client origin
-                    (default True). If False, coordinates are treated as absolute screen coords.
-        - rel_norm: when True and `relative` is True, treat the provided coords as normalized
-                    fractions of the client area (0..1). This keeps crops resolution-independent.
-
-        Returns: a Pillow `Image` instance with the captured region.
-        """
-        try:
-            import mss
-            from PIL import Image
-        except Exception as e:
-            raise RuntimeError("mss and Pillow are required for screenshots. Install with `pip install mss pillow`") from e
-
-        if not self.hwnd:
-            self.find_window()
-
-        if relative:
-            # Get client origin and size
-            client_left, client_top = win32gui.ClientToScreen(self.hwnd, (0, 0))
-            client_rect = win32gui.GetClientRect(self.hwnd)
-            client_w = client_rect[2]
-            client_h = client_rect[3]
-
-            if rel_norm:
-                # top_left/bottom_right are normalized fractions in 0..1
-                nl, nt = float(top_left[0]), float(top_left[1])
-                nr, nb = float(bottom_right[0]), float(bottom_right[1])
-                # clamp
-                nl = max(0.0, min(1.0, nl))
-                nt = max(0.0, min(1.0, nt))
-                nr = max(0.0, min(1.0, nr))
-                nb = max(0.0, min(1.0, nb))
-                left = client_left + int(nl * client_w)
-                top = client_top + int(nt * client_h)
-                right = client_left + int(nr * client_w)
-                bottom = client_top + int(nb * client_h)
-            else:
-                # Convert from window-relative pixels to absolute screen coords
-                left = client_left + int(top_left[0])
-                top = client_top + int(top_left[1])
-                right = client_left + int(bottom_right[0])
-                bottom = client_top + int(bottom_right[1])
-        else:
-            left, top = int(top_left[0]), int(top_left[1])
-            right, bottom = int(bottom_right[0]), int(bottom_right[1])
-
-        # Optionally clip the region to the client area to avoid off-screen or window-decor captures
-        if clip_to_client and relative:
-            # client_left/client_top and client_w/client_h already available
-            client_left, client_top = win32gui.ClientToScreen(self.hwnd, (0, 0))
-            client_rect = win32gui.GetClientRect(self.hwnd)
-            client_w = client_rect[2]
-            client_h = client_rect[3]
-            client_right = client_left + client_w
-            client_bottom = client_top + client_h
-
-            orig = (left, top, right, bottom)
-            left = max(left, client_left)
-            top = max(top, client_top)
-            right = min(right, client_right)
-            bottom = min(bottom, client_bottom)
-            if (left, top, right, bottom) != orig:
-                print(f"take_screenshot: clipped region {orig} -> {(left, top, right, bottom)} to client bounds")
-
-        width = right - left
-        height = bottom - top
-        if width <= 0 or height <= 0:
-            raise ValueError(f"Invalid region dimensions for screenshot after clipping: {(left,top,right,bottom)}")
-
-        with mss.mss() as sct:
-            rect = {"left": left, "top": top, "width": width, "height": height}
-            sct_img = sct.grab(rect)
-            img = Image.frombytes("RGB", sct_img.size, sct_img.rgb)
-            if save_path:
-                img.save(save_path)
-            return img
-
-    def take_screenshot_norm(self, top_left_norm, bottom_right_norm, save_path=None):
-        """Convenience wrapper: take a screenshot using normalized 0..1 coordinates.
-
-        - `top_left_norm` and `bottom_right_norm` are (x,y) tuples with values in 0..1
-          relative to the client area (0,0 top-left, 1,1 bottom-right).
-        """
-        return self.take_screenshot(top_left_norm, bottom_right_norm, save_path=save_path,
-                                    relative=True, rel_norm=True)
-
+    
