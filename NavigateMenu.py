@@ -15,7 +15,7 @@ class GameWindow:
     def __init__(self, exe_name):
         self.exe_name = exe_name
         self.hwnd = None
-        time.sleep(5)
+        time.sleep(10)
         self.find_window()
 
     def find_window(self):
@@ -118,13 +118,13 @@ class GameWindow:
         width, height, rect = self.get_size()
         print(f"Window: {width}x{height}, Rect: {rect}")
         
-        self.click(700, 450)  # Click Play
+        self.click(1200, 650)  # Click Play
         time.sleep(1)
         
-        self.click(650, 200)  # Click Challenge the Valley
+        self.click(800, 270)  # Click Challenge the Valley
         time.sleep(1)
 
-        self.click(675, 390)  # Click Play for Course
+        self.click(1000, 600)  # Click Play for Course
     
     def click_throw(self):
         self.click(640, 650)
