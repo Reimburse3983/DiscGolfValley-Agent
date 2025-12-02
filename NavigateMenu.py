@@ -72,8 +72,11 @@ class GameWindow:
                 lefttop, rightbottom = win32gui.ClientToScreen(self.hwnd, (0, 0))
                 cx = lefttop+1
                 cy = rightbottom+1
+                print(f"Clicking at ({cx}, {cy}) to focus window.")
                 pyautogui.click(cx, cy)
                 time.sleep(1)
+                pydirectinput.click(cx, cy)
+                time.sleep(0.5)
             except Exception as e2:
                 print(f"Warning: fallback focus click failed - {e2}")
 

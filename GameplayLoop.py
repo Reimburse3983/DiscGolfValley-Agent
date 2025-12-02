@@ -23,7 +23,7 @@ def ocr_stuff(screenshot):
 
 def get_wind_angle(screenshot):
     # ---- Load image ----
-    img = cv2.imread("gauge.png")
+    img = cv2.imread(screenshot)
 
     # ---- Convert to HSV for arrow detection ----
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -78,20 +78,26 @@ def get_wind_angle(screenshot):
     angle_deg = math.degrees(angle_rad)
     angle = (angle_deg + 360) % 360
 
-    print("Gauge center:", (gx, gy))
-    print("Arrow tip:", (tx, ty))
-    print("Angle (0–360°):", np.angle)
+    print("Gauge center:", (int(gx), int(gy)))
+    print("Arrow tip:", (int(tx), int(ty)))
+    print("Angle (0–360°):", angle)
+    return angle
 
 game = GameWindow("DiscGolf")
 print("window_rect:", game.get_window_rect())
-time.sleep(10)
+time.sleep(1)
 game.click_throw()
 take_screenshot(130, 90, 450, 200, "Screenshots/screenshot_cropped.png", should_save=True)
 print("window_rect after actions:", game.get_window_rect())
 ocr_distance=take_screenshot(770, 45, 505, 700, should_save=False)
-distance=ocr_stuff(ocr_distance)
+distances=ocr_stuff(ocr_distance)
+wind_direction=take_screenshot(1060, 275, 50, 300, screenshot_path="Screenshots/wind_gauge.png", should_save=True)
+other_thing=take_screenshot(1140, 345, 119, 404, screenshot_path="Screenshots/other_thing.png", should_save=True)
+wind_power=ocr_stuff(other_thing)
+print("Distance:", distances)
+print("Wind Power:", wind_power)
 
-
+get_wind_angle("Screenshots/wind_gauge.png")
 
 
 
