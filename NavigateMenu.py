@@ -15,13 +15,13 @@ class GameWindow:
     def __init__(self, exe_name):
         self.exe_name = exe_name
         self.hwnd = None
-        time.sleep(10)
+        time.sleep(20)
         self.find_window()
 
     def find_window(self):
         """Find the game window by executable name."""
         # First try: direct window title search
-        hwnd = win32gui.FindWindowEx(None, None, None, "Disc Golf Valley")
+        hwnd = win32gui.FindWindowEx(None, None, None, "DiscGolf")
         if hwnd:
             self.hwnd = hwnd
             return hwnd
@@ -66,8 +66,16 @@ class GameWindow:
             win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
             time.sleep(0.05)
         except Exception as e:
-            print(f"Warning: Could not focus window - {e}")
-            # Continue anyway, might still work
+            print(f"Tring fallback for focus window - {e}")
+            # Fallback: try clicking the window center to force focus
+            try:
+                lefttop, rightbottom = win32gui.ClientToScreen(self.hwnd, (0, 0))
+                cx = lefttop+1
+                cy = rightbottom+1
+                pyautogui.click(cx, cy)
+                time.sleep(1)
+            except Exception as e2:
+                print(f"Warning: fallback focus click failed - {e2}")
 
     def get_window_rect(self):
         """Get window position and size."""
@@ -114,6 +122,7 @@ class GameWindow:
         pydirectinput.mouseUp()
 
     def navigate_menu(self):
+        self.focus()
         """Navigate the game menu."""
         width, height, rect = self.get_size()
         print(f"Window: {width}x{height}, Rect: {rect}")
