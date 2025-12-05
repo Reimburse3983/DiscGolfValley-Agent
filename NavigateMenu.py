@@ -70,8 +70,8 @@ class GameWindow:
             # Fallback: try clicking the window center to force focus
             try:
                 lefttop, rightbottom = win32gui.ClientToScreen(self.hwnd, (0, 0))
-                cx = lefttop+1
-                cy = rightbottom+1
+                cx = lefttop+100
+                cy = rightbottom+100
                 print(f"Clicking at ({cx}, {cy}) to focus window.")
                 pyautogui.click(cx, cy)
                 time.sleep(1)
