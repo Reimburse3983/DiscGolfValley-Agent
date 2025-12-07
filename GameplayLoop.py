@@ -1,5 +1,3 @@
-from turtle import distance
-from pyscreeze import screenshot
 from NavigateMenu import GameWindow
 from TakeScreenshot import take_screenshot
 import time
@@ -7,7 +5,7 @@ import pytesseract
 import cv2
 import numpy as np
 import math
-
+from ReinforcementLearning import Agent, make_actions, ACTIONS
 
 def ocr_stuff(screenshot):
 
@@ -105,29 +103,59 @@ def get_wind_angle(screenshot):
     print("Angle (0–360°):", angle)
     return angle
 
-game = GameWindow("DiscGolf")
-print("window_rect:", game.get_window_rect())
+def get_game_information(game):
+    game.focus()
+    print("focused")
+    game.click_throw()
+    print("throw clicked")
+    take_screenshot(130, 90, 450, 200, "Screenshots/screenshot_cropped.png", should_save=True)
+    print("window_rect after actions:", game.get_window_rect())
+    ocr_distance=take_screenshot(770, 45, 505, 700, should_save=False)
+    distance_to_hole=ocr_stuff(ocr_distance)
+    wind_direction_screenshot=take_screenshot(1060, 275, 50, 300, screenshot_path="Screenshots/wind_angle_screenshot.png", should_save=True)
+    wind_power_screenshot=take_screenshot(1140, 345, 126, 395, screenshot_path="Screenshots/other_thing.png", should_save=True)
+    wind_power=ocr_wind_power(wind_power_screenshot)
+    print("Distance:", distance_to_hole)
+    print("Wind Power:", wind_power)
+    wind_angle= get_wind_angle("Screenshots/wind_angle_screenshot.png")
+    return [int(distance_to_hole), int(wind_power), round(wind_angle)]
+
+def throw_disc(game, distance_to_hole, x_coord, y_coord):
+    game.click_throw()
+    time.sleep(1)
+    game.drag(650, 125, x_coord , y_coord)
+    time.sleep(10) # wait for throw animaiton to finish
+    game.click(900, 670) # clicking move to hole
+    time.sleep(1)
+    end_distance_screenshot= take_screenshot(770, 45, 505, 700, screenshot_path="Screenshots/end_distance_screenshot.png", should_save=True)
+    end_distance = ocr_stuff(end_distance_screenshot)
+    print("End Distance:", end_distance)
+    reward_value = 2 if distance_to_hole == end_distance else (int(distance_to_hole)-int(end_distance))/int(distance_to_hole)
+    print("Reward Calculation:" + str(reward_value))
+    # reinfocement learning should out x between 0-500 and y between 0 -200
+    return reward_value
+
+
+
+agent=Agent()
+gameObject = GameWindow("DiscGolf")
+print("window_rect:", gameObject.get_window_rect())
 time.sleep(1)
 
-game.focus()
-print("focused")
-game.click_throw()
-print("throw clicked")
-take_screenshot(130, 90, 450, 200, "Screenshots/screenshot_cropped.png", should_save=True)
-print("window_rect after actions:", game.get_window_rect())
-ocr_distance=take_screenshot(770, 45, 505, 700, should_save=False)
-distances=ocr_stuff(ocr_distance)
-wind_direction=take_screenshot(1060, 275, 50, 300, screenshot_path="Screenshots/wind_gauge.png", should_save=True)
-other_thing=take_screenshot(1140, 345, 126, 395, screenshot_path="Screenshots/other_thing.png", should_save=True)
-wind_power=ocr_wind_power(other_thing)
-print("Distance:", distances)
-print("Wind Power:", wind_power)
+for ep in range(1000):
+    state =get_game_information(gameObject)
 
-get_wind_angle("Screenshots/wind_gauge.png")
+    # one throw only
+    a_idx = agent.act(state)
+    action_xy = ACTIONS[a_idx]
 
+    reward = throw_disc(gameObject, state[0], action_xy[0], action_xy[1])
 
+    agent.update(state, a_idx, reward)
 
-
+    if ep % 1 == 0:
+        print(f"Episode {ep}, reward={reward:.3f}, epsilon={agent.epsilon:.3f}")
+    gameObject.reset()
 
 
 

@@ -114,16 +114,36 @@ class GameWindow:
         self.focus()
         pydirectinput.press(key)
 
-    def drag(self, from_wx, from_wy, to_wx, to_wy, duration=0.2):
+    def throw(self, from_wx, from_wy, to_wx, to_wy, duration=0.2):
         """Drag from one window-relative position to another."""
-        self.focus()
         x1, y1 = self.to_screen_coords(from_wx, from_wy)
-        x2, y2 = self.to_screen_coords(to_wx, to_wy)
+        x2, y2 = self.to_screen_coords(400 + to_wx, 300 + to_wy)
         pydirectinput.moveTo(x1, y1)
         pydirectinput.mouseDown()
         pydirectinput.moveTo(x2, y2, duration=duration)
         pydirectinput.mouseUp()
+    def drag(self, from_wx, from_wy, to_wx, to_wy, duration=0.4, steps=40):
 
+        x1, y1 = self.to_screen_coords(from_wx, from_wy)
+        x2, y2 = self.to_screen_coords(400 + to_wx, 300 + to_wy)
+
+        dx = (x2 - x1) / steps
+        dy = (y2 - y1) / steps
+        cx, cy = x1, y1
+        # Start drag
+        pydirectinput.moveTo(x1, y1)
+        time.sleep(0.01)
+        pydirectinput.mouseDown()
+        time.sleep(0.01)
+        # Move in small steps
+        for _ in range(steps):
+            cx += dx
+            cy += dy
+            pydirectinput.moveTo(int(cx), int(cy))
+            time.sleep(duration / steps)
+
+        # End drag
+        pydirectinput.mouseUp()
     def navigate_menu(self):
         self.focus()
         """Navigate the game menu."""
@@ -137,7 +157,12 @@ class GameWindow:
         time.sleep(1)
 
         self.click(1000, 600)  # Click Play for Course
-    
+    def reset(game):
+        game.click(1200, 75)  # Click Menu
+        time.sleep(0.5)
+        game.click(640, 420)  # Click Restart Hole
+        time.sleep(5)  # Wait for hole to load
+
     def click_throw(self):
         self.click(640, 650)
         time.sleep(1)
