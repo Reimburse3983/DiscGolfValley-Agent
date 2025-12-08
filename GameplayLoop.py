@@ -1,4 +1,4 @@
-from NavigateMenu import GameWindow
+from GameWindow import GameWindow
 from TakeScreenshot import take_screenshot
 import time
 import pytesseract

@@ -1,6 +1,6 @@
 # Main runner
 import time
-from NavigateMenu import GameWindow
+from GameWindow import GameWindow
 from OpenGame import ensure_game_running
 
 
