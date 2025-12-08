@@ -4,12 +4,12 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-def make_actions(n=11):
+def make_actions(n=15):
     xs = np.linspace(0, 500, n)
-    ys = np.linspace(0, 200, n)
+    ys = np.linspace(0, 300, n)
     return [(float(x), float(y)) for x in xs for y in ys]
 
-ACTIONS = make_actions(11)
+ACTIONS = make_actions(15)
 NUM_ACTIONS = len(ACTIONS)
 
 
@@ -43,8 +43,9 @@ class Agent:
 
     def act(self, state):
         if np.random.rand() < self.epsilon:
+            print("Taking random action")
             return np.random.randint(NUM_ACTIONS)
-
+        print("Taking greedy action")
         s = torch.FloatTensor(state).unsqueeze(0)
         with torch.no_grad():
             q = self.model(s)[0]

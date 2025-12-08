@@ -6,8 +6,13 @@ import cv2
 import numpy as np
 import math
 from ReinforcementLearning import Agent, make_actions, ACTIONS
+import matplotlib
+matplotlib.use("Agg")   # use non-GUI backend BEFORE importing pyplot
+import matplotlib.pyplot as plt
 
-def ocr_stuff(screenshot):
+
+
+def ocr_distance(screenshot):
 
     distance_region=screenshot.convert('L')  # Convert to grayscale
     # Only allow digits
@@ -16,7 +21,7 @@ def ocr_stuff(screenshot):
 
     # Filter digits just in case
     distance = ''.join(filter(str.isdigit, distance_text))
-    print(distance)
+    #print(distance)
     return distance
 
 def ocr_wind_power(pil_img):
@@ -98,26 +103,26 @@ def get_wind_angle(screenshot):
     angle_deg = math.degrees(angle_rad)
     angle = (angle_deg + 360) % 360
 
-    print("Gauge center:", (int(gx), int(gy)))
-    print("Arrow tip:", (int(tx), int(ty)))
+    #print("Gauge center:", (int(gx), int(gy)))
+    #print("Arrow tip:", (int(tx), int(ty)))
     print("Angle (0–360°):", angle)
     return angle
 
-def get_game_information(game):
-    game.focus()
-    print("focused")
+def get_game_information(game, count):
+    #game.focus()
+    #print("focused")
     game.click_throw()
     print("throw clicked")
-    take_screenshot(130, 90, 450, 200, "Screenshots/screenshot_cropped.png", should_save=True)
-    print("window_rect after actions:", game.get_window_rect())
+    take_screenshot(130, 90, 450, 200, "Screenshots/screenshot_cropped.png", should_save=False)
+    #print("window_rect after actions:", game.get_window_rect())
     ocr_distance=take_screenshot(770, 45, 505, 700, should_save=False)
-    distance_to_hole=ocr_stuff(ocr_distance)
-    wind_direction_screenshot=take_screenshot(1060, 275, 50, 300, screenshot_path="Screenshots/wind_angle_screenshot.png", should_save=True)
-    wind_power_screenshot=take_screenshot(1140, 345, 126, 395, screenshot_path="Screenshots/other_thing.png", should_save=True)
+    distance_to_hole=ocr_distance(ocr_distance)
+    take_screenshot(1060, 275, 50, 300, screenshot_path=f"Screenshots/wind_angle_screenshot{count}.png", should_save=True)
+    wind_power_screenshot=take_screenshot(1140, 345, 126, 395, screenshot_path="Screenshots/other_thing.png", should_save=False)
     wind_power=ocr_wind_power(wind_power_screenshot)
     print("Distance:", distance_to_hole)
     print("Wind Power:", wind_power)
-    wind_angle= get_wind_angle("Screenshots/wind_angle_screenshot.png")
+    wind_angle= get_wind_angle(f"Screenshots/wind_angle_screenshot{count}.png")
     return [int(distance_to_hole), int(wind_power), round(wind_angle)]
 
 def throw_disc(game, distance_to_hole, x_coord, y_coord):
@@ -127,10 +132,13 @@ def throw_disc(game, distance_to_hole, x_coord, y_coord):
     time.sleep(10) # wait for throw animaiton to finish
     game.click(900, 670) # clicking move to hole
     time.sleep(1)
-    end_distance_screenshot= take_screenshot(770, 45, 505, 700, screenshot_path="Screenshots/end_distance_screenshot.png", should_save=True)
-    end_distance = ocr_stuff(end_distance_screenshot)
+    end_distance_screenshot= take_screenshot(770, 45, 482, 700, screenshot_path="Screenshots/end_distance_screenshot.png", should_save=True)
+    end_distance = ocr_distance(end_distance_screenshot)
     print("End Distance:", end_distance)
-    reward_value = 2 if distance_to_hole == end_distance else (int(distance_to_hole)-int(end_distance))/int(distance_to_hole)
+    if end_distance == '':
+        print("OCR failed to read end distance due to single digit problems. Assigning default reward of 0.85")
+        return 0.85 # OCR failed due to single digit weirdness. Return single digit reward.
+    reward_value = 2 if int(distance_to_hole) == int(end_distance) else (int(distance_to_hole)-int(end_distance))/int(distance_to_hole)
     print("Reward Calculation:" + str(reward_value))
     # reinfocement learning should out x between 0-500 and y between 0 -200
     return reward_value
@@ -139,22 +147,29 @@ def throw_disc(game, distance_to_hole, x_coord, y_coord):
 
 agent=Agent()
 gameObject = GameWindow("DiscGolf")
-print("window_rect:", gameObject.get_window_rect())
+#print("window_rect:", gameObject.get_window_rect())
 time.sleep(1)
-
+reward_history = []
 for ep in range(1000):
-    state =get_game_information(gameObject)
+    state =get_game_information(gameObject, ep)
 
     # one throw only
     a_idx = agent.act(state)
     action_xy = ACTIONS[a_idx]
 
     reward = throw_disc(gameObject, state[0], action_xy[0], action_xy[1])
-
     agent.update(state, a_idx, reward)
+    reward_history.append(reward)
+    print(f"Episode {ep}, reward={reward:.3f}, epsilon={agent.epsilon:.3f}")
+    if ep % 10 == 0 and ep > 0:
+        plt.figure()
+        plt.plot(reward_history)
+        plt.xlabel("Episode")
+        plt.ylabel("Reward")
+        plt.title(f"Reward Over Time — Episode {ep}")
+        plt.savefig(f"Plots/reward_plot_ep{ep}.png")  # save image
+        plt.close()  # prevent memory leak
 
-    if ep % 1 == 0:
-        print(f"Episode {ep}, reward={reward:.3f}, epsilon={agent.epsilon:.3f}")
     gameObject.reset()
 
 

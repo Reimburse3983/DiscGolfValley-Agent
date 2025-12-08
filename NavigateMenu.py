@@ -18,6 +18,7 @@ class GameWindow:
         time.sleep(20)
         self.find_window()
 
+
     def find_window(self):
         """Find the game window by executable name."""
         # First try: direct window title search
@@ -144,6 +145,7 @@ class GameWindow:
 
         # End drag
         pydirectinput.mouseUp()
+        
     def navigate_menu(self):
         self.focus()
         """Navigate the game menu."""
@@ -157,6 +159,7 @@ class GameWindow:
         time.sleep(1)
 
         self.click(1000, 600)  # Click Play for Course
+    
     def reset(game):
         game.click(1200, 75)  # Click Menu
         time.sleep(0.5)
@@ -164,7 +167,7 @@ class GameWindow:
         time.sleep(5)  # Wait for hole to load
 
     def click_throw(self):
-        self.click(640, 650)
+        self.click(640, 650) # Click Throw button
         time.sleep(1)
 
     
