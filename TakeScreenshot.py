@@ -3,6 +3,7 @@ import pygetwindow as gw
 import time
 
 def take_screenshot(left_crop, top_crop, right_crop, bottom_crop, screenshot_path="", should_save=False):
+    """Take a screenshot of the DiscGolf game window, crop it, and optionally save it."""
     # Find the window by title
     window = gw.getWindowsWithTitle("DiscGolf")[0]
 

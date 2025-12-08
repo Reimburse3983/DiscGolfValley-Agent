@@ -12,6 +12,7 @@ pydirectinput.FAILSAFE = False
 
 
 class GameWindow:
+    """Class to interact with the DiscGolf game window."""
     def __init__(self, exe_name):
         self.exe_name = exe_name
         self.hwnd = None
@@ -29,6 +30,7 @@ class GameWindow:
 
         # Second try: search by executable process
         def callback(hwnd, _):
+            """Callback to find window by process executable."""
             if not win32gui.IsWindowVisible(hwnd):
                 return
             try:
@@ -161,12 +163,14 @@ class GameWindow:
         self.click(1000, 600)  # Click Play for Course
     
     def reset(game):
+        """Reset the current hole in the game."""
         game.click(1200, 75)  # Click Menu
         time.sleep(0.5)
         game.click(640, 420)  # Click Restart Hole
         time.sleep(5)  # Wait for hole to load
 
     def click_throw(self):
+        """Click the Throw button in the game."""
         self.click(640, 650) # Click Throw button
         time.sleep(1)
 
