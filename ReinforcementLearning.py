@@ -73,3 +73,21 @@ class Agent:
         # decay epsilon
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+    
+    def save(self, path):
+        """Save model, optimizer, and training state."""
+        checkpoint = {
+            "model_state": self.model.state_dict(),
+            "optimizer_state": self.opt.state_dict(),
+            "epsilon": self.epsilon,
+        }
+        torch.save(checkpoint, path)
+        print(f"Saved checkpoint to {path}")
+
+    def load(self, path):
+        """Load model, optimizer, and training state."""
+        checkpoint = torch.load(path, map_location=torch.device("cpu"))
+        self.model.load_state_dict(checkpoint["model_state"])
+        self.opt.load_state_dict(checkpoint["optimizer_state"])
+        self.epsilon = checkpoint["epsilon"]
+        print(f"Loaded checkpoint from {path}")
